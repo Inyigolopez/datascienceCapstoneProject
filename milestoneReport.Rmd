@@ -1,0 +1,203 @@
+---
+title: "Data Science Specialization - Milestone Report"
+author: "inyigolopez"
+date: "March 20, 2016"
+output: html_document
+---
+
+The goal of this project is just to display that you've gotten used to working with the data and that you are on track to create your prediction algorithm. Please submit a report on R Pubs (http://rpubs.com/) that explains your exploratory analysis and your goals for the eventual app and algorithm. This document should be concise and explain only the major features of the data you have identified and briefly summarize your plans for creating the prediction algorithm and Shiny app in a way that would be understandable to a non-data scientist manager. You should make use of tables and plots to illustrate important summaries of the data set. The motivation for this project is to: 1. Demonstrate that you've downloaded the data and have successfully loaded it in.2. Create a basic report of summary statistics about the data sets.3. Report any interesting findings that you amassed so far.4. Get feedback on your plans for creating a prediction algorithm and Shiny app.
+
+
+```{r results='hide', message=FALSE, warning=FALSE, echo=FALSE}
+library(tm)
+library(SnowballC)
+library(ggplot2)
+library(wordcloud)
+#library(RWeka)
+```
+
+
+## Processing data
+
+First of all we need download data provided by SwiftKey:
+
+### Load data 
+```{r, eval=FALSE, echo=TRUE}
+##Comment when data is downloaded
+
+#fileURL <- "http://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+#download.file(fileURL, destfile = "data.zip", method = "curl")
+#unlink(fileURL)
+#unzip("data.zip")
+```
+### Read data
+```{r, eval=FALSE, echo=TRUE}
+blogs <- readLines("./final/en_US/en_US.blogs.txt", encoding = "UTF-8", skipNul=TRUE)
+news <- readLines("./final/en_US/en_US.news.txt", encoding = "UTF-8", skipNul=TRUE)
+twitter <- readLines("./final/en_US/en_US.twitter.txt", encoding = "UTF-8", skipNul=TRUE)
+```
+
+### Data analysis
+
+We need make some statistical report about size of files, number of lines and number of words in each file...
+```{r, eval=FALSE, echo=FALSE}
+## Checking the size and length of the files and calculate the word count
+blogsSizeMB <- file.info("./final/en_US/en_US.blogs.txt")$size / 1024.0 / 1024.0
+newsSizeMB <- file.info("./final/en_US/en_US.news.txt")$size / 1024.0 / 1024.0
+twitterSizeMB <- file.info("./final/en_US/en_US.twitter.txt")$size / 1024.0 / 1024.0
+
+blogsLines <- length(blogs)
+newsLines <- length(news)
+twitterLines <- length(twitter)
+
+#blogsWords <- sum(sapply(gregexpr("\\W+", blogs), length) + 1)
+#newsWords <- sum(sapply(gregexpr("\\W+", news), length) + 1)
+#twitterWords <- sum(sapply(gregexpr("\\W+", twitter), length) + 1)
+```
+
+..And create a table with this statistics:
+
+```{r, eval=FALSE, echo=FALSE}
+fileSummary <- data.frame(
+        fileName = c("Blogs","News","Twitter"),
+        fileSize = c(round(blogsSizeMB, digits = 2), 
+                     round(newsSizeMB, digits = 2), 
+                     round(twitterSizeMB, digits = 2)),
+        lines = c(blogsLines, newsLines, twitterLines),
+        words = c(blogsWords, newsWords, twitterWords)                  
+)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+colnames(fileSummary) <- c("File", "Size MB", "Lines", "Words")
+saveRDS(fileSummary, file = "fileSummary.Rda")
+```
+
+```{r, eval=TRUE, echo=FALSE}
+con <- gzfile("fileSummary.Rda")
+fileSummaryDF <- readRDS(con)
+close(con)
+
+knitr::kable(head(fileSummaryDF, 10))
+```
+
+As you can see we have a 'weight' files to process so I'm going to create a random sample of each of this files for faster data processing.
+
+### Take sample data
+
+In order to maintain the proportion of data i'm going to take a random partition of 5% of element of each file and aggregate to my 'randomSample' file
+```{r eval=FALSE, echo=FALSE}
+blogsSample <- blogs[sample(1:length(blogs),blogsLines*0.05)]
+newsSample <- news[sample(1:length(news),newsLines*0.05)]
+twitterSample <-  twitter[sample(1:length(twitter),twitterLines*0.05)]
+
+randomSample <- c(blogsSample, newsSample, twitterSample)
+
+## Save sample
+writeLines(randomSample, "./randomSample/randomSample.txt")
+
+randomSampleSizeMB <- file.info("randomSample.txt")$size / 1024.0 / 1024.0
+randomSampleLines <- length(randomSample)
+randomSampleWords <- sum(sapply(gregexpr("\\W+", randomSample), length)+1)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+sampleSummary <- data.frame(
+        fileName = "Random sample",
+        fileSize = round(randomSampleSizeMB, digits = 2),
+        lines = randomSampleLines,
+        words = randomSampleWords                  
+)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+colnames(sampleSummary) <- c("File", "Size MB", "Lines", "Words")
+saveRDS(sampleSummary, file = "sampleSummary.Rda")
+```
+
+```{r, eval=TRUE, echo=FALSE}
+conSample <- gzfile("sampleSummary.Rda")
+sampleSummaryDF <- readRDS(conSample)
+close(conSample)
+
+knitr::kable(head(sampleSummaryDF, 10))
+```
+
+
+### Making Data Corpus
+
+We are going to create a Text corpus with our sample data and then we are going to clean data, removing numbers, blank characters, english 'stopwords', and convert all character to lower case.
+
+```{r, eval=TRUE, echo=FALSE}
+
+dirname <- file.path("~", "workspaceR/DataScienceSpecializationFinalProject", "randomSample")  
+docs <- Corpus(DirSource(dirname))
+inspect(docs)
+
+docs <- tm_map(docs, removeNumbers)
+docs <- tm_map(docs, tolower)
+docs <- tm_map(docs, removeWords, stopwords("english"))   
+
+docs <- tm_map(docs, stripWhitespace)
+docs <- tm_map(docs, PlainTextDocument)
+
+```
+
+## Visualizing results
+
+And now we create a matrix with all words and his frecuencies:
+```{r eval=TRUE, echo=TRUE}
+# Big compute process. Execute first time and saved into .RData object
+#dtm <- DocumentTermMatrix(docs)
+## Saving the final corpus
+#saveRDS(dtm, file = "dtm.RData")
+dtm <- readRDS("dtm.RData")
+
+freq <- sort(colSums(as.matrix(dtm)), decreasing=TRUE)   
+
+wf <- data.frame(word=names(freq), freq=freq)
+
+```
+
+..and we plot the frecuency of word in our sample text data putting all words wich frecuency > 5000:
+
+```{r eval=TRUE, echo=TRUE}
+p <- ggplot(subset(wf, freq>5000), aes(word, freq))    
+p <- p + geom_bar(stat="identity")   
+p <- p + theme(axis.text.x=element_text(angle=45, hjust=1))   
+p   
+```
+
+
+More 'easy' to see as a 'wordcloud' where the word size is the frecuency of each word and the color is a cluster with words of similar frecuencies.
+```{r eval=TRUE, echo=TRUE}
+set.seed(123)   
+wordcloud(names(freq), freq, c(5,.3), min.freq=5000, random.order=FALSE,colors=brewer.pal(8, "Dark2"))
+
+```
+
+## Next steps
+
+First of all we going  to implement a function to obtain a n-gram (subset of n word together) there are some implementations in packages as RWeka (Machine learning package):
+```{r}
+# ngramCreator <- function(textCorpus, numOfwords) {
+#         ngramFunc <- NGramTokenizer(textCorpus, 
+#                                 Weka_control(min = numOfwords, max = numOfwords, 
+#                                 delimiters = " \\r\\n\\t.,;:\"()?!"))
+#         ngramFunc <- data.frame(table(ngramFunc))
+#         ngramFunc <- ngramFunc[order(ngramFunc$Freq, 
+#                                              decreasing = TRUE),][1:10,]
+#         colnames(ngramFunc) <- c("String","Count")
+#         ngramFunc
+# }
+```
+
+To achieve our objetive of make a predictive text algorithm, we must consider the frecuency of word into the text, but the frecuency of pairs or diferent n-grams.
+For do this, there are a function 'findAssoc' in an R package 'tm' that show the correlation of a word with all the words in a Term Matrix, so you can use this to find the words more related to others:
+
+```{r}
+#  corr <- findAssocs(subset(wf, freq>5000), c("tomorrow"), corlimit=0.98)
+
+```
+
+Using this function and similar others in 'tm', 'NLP' and others packages for Natural Language Processing; we could construct functions to evaluate the diferents n-gram in our texts, and create our predictive algorithms. 
