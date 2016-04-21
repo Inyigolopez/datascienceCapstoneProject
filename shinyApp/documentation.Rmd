@@ -18,7 +18,7 @@ The goal of this app is to predict the next word, given an incomplete sentence.
 ### References and GitHub Repository. ###
 
 - The GitHub repository with further documentation for this app can be found at:  
-[]()
+<a href="https://github.com/Inyigolopez/datascienceCapstoneProject" target="_blank">Github inyigolopez</a>
 
 - Katz, S. (1987). *Estimation of probabilities from sparse data for the language model component of a speech recognizer*. Acoustics, Speech and Signal Processing, IEEE Transactions on, 35(3), 400-401.
 
