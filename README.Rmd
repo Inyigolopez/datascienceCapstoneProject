@@ -1,0 +1,35 @@
+---
+title: "Data Science Specialization - Product development"
+author: "inyigolopez"
+date: "April 18, 2016"
+output: html_document
+---
+
+## Goal of the project
+
+The goal is make a predictive algorithm for predict the next word given an incompleted sentence.
+
+## How to!
+
+To complete the goal, I have a lot of data of sentences from diferent sources as Blogs, Twitter and News.
+First of all I cleaned the data, removing, punctuation, profanity words, etc; and then I grouped each of this words in different groups of consecutive words (1: unigram, 2: bigram, 3: bigram and 4: fourgram).
+Once I have this n-gram, the main idea to predict the next word given a sentence is: Take the last 3 words of the incomplete sentence and verify if this 3 words consecutive are in the 4-gram constructed before. If the search is positive, I took the 4ª word after mi 3-gram ( can be more than one) and see wich of the 4-gram than contain the 3-gram is more repeated, taken the 4ª word as my prediction. In case, my search no return result, I do the same with the las 2 words and the 3-grams; and so on...
+If I have no words in my n-grams than contains the searching, I return the most repeated word in my corpus.
+
+To do this, I need implement the *Katz Backoff algorithm*, that put the main idea describe above, in math/probability notation:
+
+$$ P_{bo}(w_i  | w_{i-n+1},...,w_{i-1}) $$
+
+## Problem
+
+To do this we need process a lot of data to obtain this probabilities but the response of mi 'predictor' must be near real time, so we have a problem because we can't process all data every time you put a new sentence.
+
+## Solution
+
+To solve this I go to create something like a Lambda Architecture, where we have a Batch Layer of preprocessed data. The time for make this preprocessed data is high but I only need build once.
+To do this I take all posibles posibles n-1-grams inside of each n-gram and compute his probabilities following Katz algorithm.
+
+So now I have 4 files where I save all probabilities of all n-1-grams in my n-grams, and I can predict quickly because every word in my sample of data is encripted with a code of words and all probabilities in each n-gram posibilities.
+
+So finally when you put the sentence into de input file, I going to look for the words into my codified files and look for the word with bigger probability in the n-grams ( from bigger to lower)
+
