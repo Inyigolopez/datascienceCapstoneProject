@@ -1,0 +1,28 @@
+The goal of this app is to predict the next word, given an incomplete sentence.  
+
+###  How to use the application. ###
+
+<ol>
+<li> You must enters a sentence in the <strong>text input field</strong> on the left</li>
+<li> The <strong>predicted word</strong> appears just below. The prediction is a word in a precompiled list of words ( can be a number (NUM) or a year (YEAR) ). This words are filtered is predicted word are contained in a <a href="https://en.wikipedia.org/wiki/Profanity" target="_blank">'profanity word file'</a>.</li>
+<li> On the right, the predicted words table contains an <strong>extended prediction</strong> with the 5 most probable words, and their probabilities.</li>
+</ol>
+
+### How does it work?
+
+<p>The model takes the last few words of a sentence (a 4-gram if four words are used, 3-gram for three words, etc.) and uses statistics about a collection of English sentences provided by SwiftKey to find the most probable next word, given that set of sentences.</p> 
+
+<p>Technically, the probabilities displayed by the app are assigned using a <a href="http://en.wikipedia.org/wiki/N-gram" target="_blank">4-gram model</a>  and implementation of the <a href="http://en.wikipedia.org/wiki/Katz%27s_back-off_model" target="_blank">Katz Backoff algorithm</a>.</p>  
+
+
+### References and GitHub Repository. ###
+
+- The GitHub repository with further documentation for this app can be found at:  
+[]()
+
+- Katz, S. (1987). *Estimation of probabilities from sparse data for the language model component of a speech recognizer*. Acoustics, Speech and Signal Processing, IEEE Transactions on, 35(3), 400-401.
+
+- <a href="https://www.coursera.org/course/nlp" target="_blank">Stanford Coursera Course for Natural Language Processing</a>
+
+
+
